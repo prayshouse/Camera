@@ -3052,7 +3052,36 @@ public class Imgproc {
 
         return retVal;
     }
+//
+    // C++:  void circle(Mat& img, Point center, int radius, Scalar color, int thickness = 1, int lineType = LINE_8, int shift = 0)
+    //
 
+    //javadoc: circle(img, center, radius, color, thickness, lineType, shift)
+    public static void circle(Mat img, Point center, int radius, Scalar color, int thickness, int lineType, int shift)
+    {
+
+        circle_0(img.nativeObj, center.x, center.y, radius, color.val[0], color.val[1], color.val[2], color.val[3], thickness, lineType, shift);
+
+        return;
+    }
+
+    //javadoc: circle(img, center, radius, color, thickness)
+    public static void circle(Mat img, Point center, int radius, Scalar color, int thickness)
+    {
+
+        circle_1(img.nativeObj, center.x, center.y, radius, color.val[0], color.val[1], color.val[2], color.val[3], thickness);
+
+        return;
+    }
+
+    //javadoc: circle(img, center, radius, color)
+    public static void circle(Mat img, Point center, int radius, Scalar color)
+    {
+
+        circle_2(img.nativeObj, center.x, center.y, radius, color.val[0], color.val[1], color.val[2], color.val[3]);
+
+        return;
+    }
 
     //
     // C++:  double contourArea(Mat contour, bool oriented = false)
@@ -9875,6 +9904,11 @@ public class Imgproc {
     // C++:  void calcHist(vector_Mat images, vector_int channels, Mat mask, Mat& hist, vector_int histSize, vector_float ranges, bool accumulate = false)
     private static native void calcHist_0(long images_mat_nativeObj, long channels_mat_nativeObj, long mask_nativeObj, long hist_nativeObj, long histSize_mat_nativeObj, long ranges_mat_nativeObj, boolean accumulate);
     private static native void calcHist_1(long images_mat_nativeObj, long channels_mat_nativeObj, long mask_nativeObj, long hist_nativeObj, long histSize_mat_nativeObj, long ranges_mat_nativeObj);
+
+    // C++:  void circle(Mat& img, Point center, int radius, Scalar color, int thickness = 1, int lineType = LINE_8, int shift = 0)
+    private static native void circle_0(long img_nativeObj, double center_x, double center_y, int radius, double color_val0, double color_val1, double color_val2, double color_val3, int thickness, int lineType, int shift);
+    private static native void circle_1(long img_nativeObj, double center_x, double center_y, int radius, double color_val0, double color_val1, double color_val2, double color_val3, int thickness);
+    private static native void circle_2(long img_nativeObj, double center_x, double center_y, int radius, double color_val0, double color_val1, double color_val2, double color_val3);
 
     // C++:  double compareHist(Mat H1, Mat H2, int method)
     private static native double compareHist_0(long H1_nativeObj, long H2_nativeObj, int method);
