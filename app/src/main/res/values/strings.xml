@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">Camera</string>
+    <string name="button_original_name">ORIGINAL</string>
+    <string name="button_green_name">GREEN</string>
+    <string name="button_yellow_name">YELLOW</string>
 </resources>

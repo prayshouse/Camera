@@ -8,6 +8,8 @@ import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
+import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 /**
@@ -21,9 +23,12 @@ public class ColorBlobDetector {
     // Minimum contour area in percent for contours filtering
     private static double mMinContourArea = 0.1;
     // Color radius for range checking in HSV color space
-    private Scalar mColorRadius = new Scalar(25,50,50,0);
+    private Scalar mColorRadius = new Scalar(15,50,50,0);
     private Mat mSpectrum = new Mat();
     private List<MatOfPoint> mContours = new ArrayList<MatOfPoint>();
+    // Max area
+    private Point mCenter = new Point();
+    private float[] mRadius = new float[1];
 
     // Cache
     Mat mPyrDownMat = new Mat();
@@ -31,6 +36,8 @@ public class ColorBlobDetector {
     Mat mMask = new Mat();
     Mat mDilatedMask = new Mat();
     Mat mHierarchy = new Mat();
+//    Point mCenterTmp = new Point();
+//    float[] mRadiusTmp = new float[1];
 
     public void setColorRadius(Scalar radius) {
         mColorRadius = radius;
@@ -85,12 +92,22 @@ public class ColorBlobDetector {
 
         // Find max contour area
         double maxArea = 0;
+        Point tmpCenter = new Point();
+        float[] tmpRadius = new float[1];
+        mRadius[0] = 0.0f;
         Iterator<MatOfPoint> each = contours.iterator();
         while (each.hasNext()) {
             MatOfPoint wrapper = each.next();
+            Imgproc.minEnclosingCircle(new MatOfPoint2f(wrapper.toArray()), tmpCenter, tmpRadius);
+            if (tmpRadius[0] > mRadius[0]) {
+                mRadius[0] = tmpRadius[0];
+                mCenter.x = tmpCenter.x * 4;
+                mCenter.y = tmpCenter.y * 4;
+            }
             double area = Imgproc.contourArea(wrapper);
-            if (area > maxArea)
+            if (area > maxArea) {
                 maxArea = area;
+            }
         }
 
         // Filter contours by area and resize to fit the original image size
@@ -108,4 +125,6 @@ public class ColorBlobDetector {
     public List<MatOfPoint> getContours() {
         return mContours;
     }
+
+    public Point getCenter() { return mCenter; }
 }

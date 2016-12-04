@@ -16,6 +16,7 @@ import org.opencv.core.Mat;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
 import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfPoint;
+import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
@@ -23,6 +24,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.hardware.Camera.Size;
 import android.os.Environment;
+import android.os.Handler;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -33,12 +35,14 @@ import android.view.View;
 import android.view.View.OnTouchListener;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity implements CvCameraViewListener2, OnTouchListener {
     private static final String TAG = "OCVSample::Activity";
     private static final int SHOW_ORIGINAL = 1;
     private static final int SHOW_GREEN = 2;
+    private static final int SHOW_YELLOW = 3;
 
     private CameraView mOpenCvCameraView;
     private List<Size> mResolutionList;
@@ -47,15 +51,57 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
     private MenuItem[] mResolutionMenuItems;
     private SubMenu mResolutionMenu;
 
+    private TextView mTextView;
     private Button mButtonOriginal;
     private Button mButtonGreen;
+    private Button mButtonYellow;
 
     private int show = SHOW_ORIGINAL;
     private Mat mMatRGB;
     private Mat mMatGreen;
+    private Mat mMatYellow;
     private Scalar mScalarGreenRGB;
     private Scalar mScalarGreenHSV;
-    private ColorBlobDetector mDetector;
+    private Scalar mScalarYellowRGB;
+    private Scalar mScalarYellowHSV;
+    private ColorBlobDetector mDetectorGreen;
+    private ColorBlobDetector mDetectorYellow;
+    private Point mPointGreen;
+    private Point mPointYellow;
+    private double xGreen = 0.0;
+    private double yGreen = 0.0;
+    private double xYellow = 0.0;
+    private double yYellow = 0.0;
+    private double mWidth = 0.0;
+    private double mHeight = 0.0;
+
+    private Handler mHandler;
+
+    public static String format4(double d) {
+        return String.format("%4.2f", d);
+    }
+
+    public static String format3(double d) {
+        return String.format("%3.2f", d);
+    }
+
+    Runnable runnableUi = new Runnable() {
+        @Override
+        public void run() {
+            switch (show) {
+                case SHOW_GREEN:
+                    mTextView.setText(String.valueOf("x : \t" + MainActivity.format4(xGreen) + "/" + mWidth
+                            + " y : \t" + MainActivity.format3(yGreen) + "/" + mHeight));
+                    break;
+                case SHOW_YELLOW:
+                    mTextView.setText(String.valueOf("x : \t" + MainActivity.format4(xYellow) + "/" + mWidth
+                            + " y : \t" + MainActivity.format3(yYellow) + "/" + mHeight));
+                    break;
+                default:
+                    break;
+            }
+        }
+    };
 
     class MyClickListener implements View.OnClickListener {
         @Override
@@ -66,6 +112,9 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
                     break;
                 case R.id.button_green:
                     show = SHOW_GREEN;
+                    break;
+                case R.id.button_yellow:
+                    show = SHOW_YELLOW;
                     break;
                 default:
                     show = SHOW_ORIGINAL;
@@ -111,11 +160,16 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
 
         mOpenCvCameraView.setCvCameraViewListener(this);
 
+        mTextView = (TextView)findViewById(R.id.text);
         mButtonOriginal = (Button)findViewById(R.id.button_original);
         mButtonGreen = (Button)findViewById(R.id.button_green);
+        mButtonYellow = (Button)findViewById(R.id.button_yellow);
 
         mButtonOriginal.setOnClickListener(new MyClickListener());
         mButtonGreen.setOnClickListener(new MyClickListener());
+        mButtonYellow.setOnClickListener(new MyClickListener());
+
+        mHandler = new Handler();
     }
 
     @Override
@@ -146,33 +200,66 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
     }
 
     public void onCameraViewStarted(int width, int height) {
+        mHeight = height;
+        mWidth = width;
+
         mMatRGB = new Mat(height, width, CvType.CV_8UC4);
         mMatGreen = new Mat(height, width, CvType.CV_8UC4);
+        mMatYellow = new Mat(height, width, CvType.CV_8UC4);
 
         mScalarGreenRGB = new Scalar(0.0, 255.0, 0.0, 0);
-        mScalarGreenHSV = new Scalar(60.0, 120.0, 120.0);
+        mScalarGreenHSV = new Scalar(60.0, 205.0, 205.0);
+        mScalarYellowRGB = new Scalar(255.0, 255.0, 0.0, 0);
+        mScalarYellowHSV = new Scalar(30.0, 205.0, 205.0);
 
-        mDetector = new ColorBlobDetector();
-        mDetector.setHsvColor(mScalarGreenHSV);
+        mDetectorGreen = new ColorBlobDetector();
+        mDetectorGreen.setHsvColor(mScalarGreenHSV);
+        mDetectorYellow = new ColorBlobDetector();
+        mDetectorYellow.setHsvColor(mScalarYellowHSV);
+
+        mPointGreen = new Point();
+        mPointYellow = new Point();
     }
 
     public void onCameraViewStopped() {
         mMatRGB.release();
         mMatGreen.release();
+        mMatYellow.release();
     }
 
     public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
 
         mMatRGB = inputFrame.rgba();
+        double[] data = {255.0, 0.0, 0.0, 255.0};
         switch (show) {
             case SHOW_ORIGINAL:
                 return mMatRGB;
             case SHOW_GREEN:
                 mMatGreen = inputFrame.rgba();
-                mDetector.process(mMatGreen);
-                List<MatOfPoint> colorContour = mDetector.getContours();
-                Imgproc.drawContours(mMatGreen, colorContour, -1, mScalarGreenRGB);
+                mDetectorGreen.process(mMatGreen);
+                List<MatOfPoint> greenContour = mDetectorGreen.getContours();
+                mPointGreen = mDetectorGreen.getCenter();
+                Imgproc.drawContours(mMatGreen, greenContour, -1, mScalarGreenRGB);
+                xGreen = mPointGreen.x;
+                yGreen = mPointGreen.y;
+                for (int i = (int)xGreen; i < (int)xGreen + 20; i++)
+                    for (int j = (int)yGreen; j < (int)yGreen + 20; j++)
+                        mMatGreen.put(j, i, data);
+                mHandler.post(runnableUi);
                 return mMatGreen;
+            case SHOW_YELLOW:
+                mMatYellow = inputFrame.rgba();
+                mDetectorYellow.process(mMatYellow);
+                List<MatOfPoint> yellowContour = mDetectorYellow.getContours();
+                mPointYellow = mDetectorYellow.getCenter();
+                Imgproc.drawContours(mMatYellow, yellowContour, -1, mScalarYellowRGB);
+                xYellow = mPointYellow.x;
+                yYellow = mPointYellow.y;
+                for (int i = (int)xYellow; i < (int)xYellow + 20; i++)
+                    for (int j = (int)yYellow; j < (int)yYellow + 20; j++)
+                        mMatYellow.put(j, i, data);
+                mHandler.post(runnableUi);
+                return mMatYellow;
             default:
                 return mMatRGB;
         }
